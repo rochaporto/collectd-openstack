@@ -1,0 +1,14 @@
+Source: collectd-openstack
+Section: net
+Priority: optional
+Maintainer: Ricardo Rocha <ricardo@catalyst.net.nz>
+Uploaders: Ricardo Rocha <ricardo@catalyst.net.nz>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.3
+Homepage: https://github.com/rochaport/collectd-openstack
+
+Package: collectd-openstack
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}, python2.7 | python2.6, python (>= 2.6), python-keystoneclient, python-glanceclient, python-neutronclient, python-novaclient
+Description: Plugins for collectd stats monitoring of OpenStack based systems
+ This package provides various plugins for collecting OpenStack stats.

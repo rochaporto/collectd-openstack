@@ -1,0 +1,5 @@
+collectd-openstack (1.20140502-1) unstable; urgency=low
+
+  * Initial release.
+
+ -- Ricardo Rocha <ricardo@catalyst.net.nz>  Fri, 02 May 2014 18:25:06 +0200
