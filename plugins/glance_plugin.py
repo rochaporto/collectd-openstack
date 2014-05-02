@@ -3,8 +3,8 @@
 # Original taken from:
 # https://github.com/rochaporto/openstack-monitoring/blob/master/files/default/glance_plugin.py
 #
-from glance.client import V1Client
-from glance.common import exception
+from keystoneclient.v2_0 import Client as KeystoneClient
+from glanceclient.v2.client import Client as GlanceClient
 
 import collectd
 
@@ -19,51 +19,47 @@ OS_AUTH_STRATEGY = "keystone"
 VERBOSE_LOGGING = False
 
 def get_stats(user, passwd, tenant, url, host=None):
-    creds = {"username": user, "password": passwd, "tenant": tenant,"auth_url": url, "strategy": OS_AUTH_STRATEGY}
-    client = V1Client(host,creds=creds)
-    try:
-        image_list = client.get_images_detailed()
-    except exception.NotAuthenticated:
-        msg = "Client credentials appear to be invalid"
-        raise exception.ClientConnectionError(msg)
-    else:
-        # TODO(shep): this needs to be rewritten more inline with the keystone|nova plugins
-        data = dict()
-        data["count"] = int(len(image_list))
-        data["bytes"] = 0
-        data["snapshot.count"] = 0
-        data["snapshot.bytes"] = 0
-        data["tenant"] = dict()
+    keystone = KeystoneClient(username=user, password=passwd, tenant_name=tenant, auth_url=url)
+
+    # Find my uuid
+    user_list = keystone.users.list()
+    admin_uuid = ""
+    for usr in user_list:
+        if usr.name == user:
+            admin_uuid = usr.id
+
+    # Find out which tenants I have roles in
+    tenant_list = keystone.tenants.list()
+    my_tenants = list()
+    for tenant in tenant_list:
+        if keystone.users.list_roles(user=admin_uuid, tenant=tenant.id):
+            my_tenants.append( { "name": tenant.name, "id": tenant.id } )
+
+    prefix = "openstack.glance"
+
+    # Default data structure
+    data = {}
+    data["%s.total.images.count" % prefix] = 0
+    data["%s.total.images.bytes" % prefix] = 0
+
+    glance_endpoint = keystone.service_catalog.url_for(service_type='image')
+    # for tenant in tenant_list:
+    for tenant in my_tenants:
+        client = GlanceClient(glance_endpoint, token=keystone.auth_token)
+
+        tenant_name = tenant['name']
+
+        data["%s.%s.images.count" % (prefix, tenant_name)] = 0
+        data["%s.%s.images.bytes" % (prefix, tenant_name)] = 0
+
+        image_list = client.images.list()
+        
         for image in image_list:
-            data["bytes"] += int(image["size"])
-            if "image_type" in image["properties"] and image["properties"]["image_type"] == "snapshot":
-                data["snapshot.count"] += 1
-                data["snapshot.bytes"] += int(image["size"])
-            uuid = str(image["owner"])
-            if uuid in data["tenant"]:
-                data["tenant"][uuid]["count"] += 1
-                data["tenant"][uuid]["bytes"] += int(image["size"])
-                if "image_type" in image["properties"] and image["properties"]["image_type"] == "snapshot":
-                    data["tenant"][uuid]["snapshot.count"] += 1
-                    data["tenant"][uuid]["snapshot.bytes"] += int(image["size"])
-            else:
-                data["tenant"][uuid] = dict()
-                data["tenant"][uuid]["count"] = 1
-                data["tenant"][uuid]["bytes"] = int(image["size"])
-                data["tenant"][uuid]["snapshot.count"] = 0
-                data["tenant"][uuid]["snapshot.bytes"] = 0
-                if "image_type" in image["properties"] and image["properties"]["image_type"] == "snapshot":
-                    data["tenant"][uuid]["snapshot.count"] += 1
-                    data["tenant"][uuid]["snapshot.bytes"] += int(image["size"])
-        # debug
-        #for key in data.keys():
-        #    if key == "tenant":
-        #        for uuid in data[key].keys():
-        #            for field in data[key][uuid]:
-        #                print "glance.images.tenant.%s.%s : %i" % (uuid, field, data[key][uuid][field])
-        #    else:
-        #        print "glance.images.%s : %i" % (key, data[key])
-        ##########
+            data["%s.total.images.count" % prefix] += 1
+            data["%s.total.images.bytes" % prefix] += int(image['size'])
+            data["%s.%s.total.images.count" % (prefix, tenant_name)] += 1
+            data["%s.%s.total.images.bytes" % (prefix, tenant_name)] += int(image['size'])
+            
         return data
 
 def configure_callback(conf):
@@ -85,29 +81,19 @@ def configure_callback(conf):
 
 def read_callback():
     logger("verb", "read_callback")
+
     info = get_stats(OS_USERNAME, OS_PASSWORD, OS_TENANT_NAME, OS_AUTH_URL)
 
     if not info:
         logger("err", "No information received")
         return
 
-    for key in info.keys():
-        if key == "tenant":
-            for uuid in info[key].keys():
-                for field in info[key][uuid]:
-                    logger('verb', 'Dispatching glance.images.tenant.%s.%s : %i' % (uuid, field, int(info[key][uuid][field])))
-                    path = 'glance.images.%s.%s' % (uuid, field)
-                    val = collectd.Values(plugin=path)
-                    val.type = 'gauge'
-                    val.values = [int(info[key][uuid][field])]
-                    val.dispatch()
-        else:
-            logger('verb', 'Dispatching %s : %i' % (key, int(info[key])))
-            path = 'glance.images.%s' % (key)
-            val = collectd.Values(plugin=path)
-            val.type = 'gauge'
-            val.values = [int(info[key])]
-            val.dispatch()
+    for key in info.keys(): 
+        logger('verb', 'Dispatching %s : %i' % (key, int(info[key])))
+        val = collectd.Values(plugin=key)
+        val.type = 'gauge'
+        val.values = [int(info[key])]
+        val.dispatch()
 
 def logger(t, msg):
     if t == 'err':
