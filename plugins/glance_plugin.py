@@ -57,8 +57,8 @@ def get_stats(user, passwd, tenant, url, host=None):
         for image in image_list:
             data["%s.total.images.count" % prefix] += 1
             data["%s.total.images.bytes" % prefix] += int(image['size'])
-            data["%s.%s.total.images.count" % (prefix, tenant_name)] += 1
-            data["%s.%s.total.images.bytes" % (prefix, tenant_name)] += int(image['size'])
+            data["%s.%s.images.count" % (prefix, tenant_name)] += 1
+            data["%s.%s.images.bytes" % (prefix, tenant_name)] += int(image['size'])
             
         return data
 
