@@ -52,7 +52,7 @@ should follow some similar to:
 
 ### Puppet
 
-If you use puppet for configuration, then try this excelent [collectd][https://github.com/pdxcat/puppet-module-collectd] module.
+If you use puppet for configuration, then try this excelent [collectd](https://github.com/pdxcat/puppet-module-collectd) module.
 
 It has plenty of docs on how to use it, but for our specific plugins:
 ```
