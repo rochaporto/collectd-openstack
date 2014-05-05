@@ -1,4 +1,4 @@
-collectd-openstack (1.20140502-1) unstable; urgency=low
+collectd-openstack (0.1-2ubuntu1) precise; urgency=low
 
   * Initial release.
 
