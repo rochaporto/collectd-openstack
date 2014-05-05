@@ -22,8 +22,9 @@ Check its documentation for details.
 
 ## Setup and Configuration
 
-The example configuration(s) below assume the plugins to be located under `/usr/lib/collectd/plugins`,
-if you install using the deb package that's where they end up too.
+The example configuration(s) below assume the plugins to be located under `/usr/lib/collectd/plugins`.
+
+If you're under ubuntu, consider installing from [this ppa](https://launchpad.net/~rocha-porto/+archive/collectd).
 
 Each plugin should have its own config file, under `/etc/collectd/conf.d/<pluginname>.conf`, which
 should follow some similar to:
@@ -93,9 +94,19 @@ Please log tickets and issues at the [github home](https://github.com/rochaporto
 
 ## Additional Notes
 
-### Building the debian package
+### Ubuntu Packaging
+
+[These instructions](http://packaging.ubuntu.com/html/packaging-new-software.html) should give full details.
+
+Assuming pbuilder is set for precise:
+```
+pbuilder-dist precise create
+```
+
+follow these basic steps, including uploading to the ppa (example for a precise release):
 
 ```
-tar -zcvf ../collectd-openstack_1.20140502.orig.tar.gz *
-dpkg-buildpackage -us -uc
+bzr builddeb -- -S -us -uc
+pbuilder-dist precise build ../collectd-openstack_0.1-2ubuntu1.dsc_source.dsc
+dput ppa:rocha-porto/collectd collectd-openstack_0.1-2ubuntu1_source.changes
 ```
