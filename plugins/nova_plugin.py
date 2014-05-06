@@ -29,7 +29,6 @@
 # collectd-python:
 #   http://collectd.org/documentation/manpages/collectd-python.5.shtml
 #
-from keystoneclient.v2_0 import Client as KeystoneClient
 from novaclient.client import Client as NovaClient
 from novaclient import exceptions
 

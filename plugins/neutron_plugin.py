@@ -29,58 +29,61 @@
 #   http://collectd.org/documentation/manpages/collectd-python.5.shtml
 #
 #
-from keystoneclient.v2_0 import Client as KeystoneClient
-from neutronclient.v2.client import Client as NeutronClient
+from neutronclient.neutron.client import Client as NeutronClient
 
 import collectd
-from common import Helper
+import traceback
 
-global HELPER
+import base
 
-HELPER = Helper()
+class NeutronPlugin(base.Base):
 
-def get_stats(user, passwd, tenant, url, host=None):
-    keystone = KeystoneClient(username=user, password=passwd, tenant_name=tenant, auth_url=url)
+    def __init__(self):
+        base.Base.__init__(self)
+        self.prefix = 'openstack-neutron'
 
-    # Find my uuid
-    user_list = keystone.users.list()
-    admin_uuid = ""
-    for usr in user_list:
-        if usr.name == user:
-            admin_uuid = usr.id
+    def get_stats(self):
+        """Retrieves stats from neutron"""
+        keystone = self.get_keystone()
 
-    # Find out which tenants I have roles in
-    tenant_list = keystone.tenants.list()
-    my_tenants = list()
-    for tenant in tenant_list:
-        if keystone.users.list_roles(user=admin_uuid, tenant=tenant.id):
-            my_tenants.append( { "name": tenant.name, "id": tenant.id } )
+        data = { self.prefix: {} }
 
-    data = { HELPER.prefix: {} }
-    neutron_endpoint = keystone.service_catalog.url_for(service_type='image')
-    for tenant in my_tenants:
-        client = NeutronClient(neutron_endpoint, token=keystone.auth_token)
+        tenants = {}
+        tenant_list = keystone.tenants.list()
+        for tenant in tenant_list:
+            tenants[tenant.id] = tenant.name
+            data[self.prefix][tenant.name] = {
+                'networks': { 'count': 0 },
+                'subnets': { 'count': 0 },
+            }
 
-        data[HELPER.prefix][tenant['name']] = { 'networks': {} }
-        data_tenant = data[HELPER.prefix][tenant['name']]
-        data_tenant['networks']['count'] = 0
+        neutron_endpoint = keystone.service_catalog.url_for(service_type='network')
 
-        network_list = client.networks.list()
+        client = NeutronClient('2.0', endpoint_url=neutron_endpoint, token=keystone.auth_token)
+
+        # Get network count
+        network_list = client.list_networks()['networks']
         for network in network_list:
-            data_tenant['networks']['count'] += 1
-            
-    return data
+            tenant = tenants[network['tenant_id']]
+            data[self.prefix][tenant]['networks']['count'] += 1
+            for subnet in network['subnets']:
+                data[self.prefix][tenant]['subnets']['count'] += 1
 
+        return data
+
+try:
+    plugin = NeutronPlugin()
+except Exception as exc:
+    collectd.error("openstack-neutron: failed to initialize neutron plugin :: %s :: %s"
+            % (exc, traceback.format_exc()))
+    
 def configure_callback(conf):
     """Received configuration information"""
-    HELPER.config(conf, 'openstack-neutron')
+    plugin.config_callback(conf)
 
 def read_callback():
-    """Callback to read values and dispatch"""
-    stats = get_stats(HELPER.username, HELPER.password, HELPER.tenant, HELPER.auth_url)
-    HELPER.dispatch(stats)
-
+    """Callback triggerred by collectd on read"""
+    plugin.read_callback()
 
 collectd.register_config(configure_callback)
-collectd.info("%s: initializing plugin" % HELPER.prefix)
 collectd.register_read(read_callback)

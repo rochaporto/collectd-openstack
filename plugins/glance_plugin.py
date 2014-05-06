@@ -43,7 +43,7 @@ class GlancePlugin(base.Base):
         self.prefix = 'openstack-glance'
 
     def get_stats(self):
-        """Retrieves images stats from glance"""
+        """Retrieves stats from glance"""
         keystone = self.get_keystone()
 
         data = { self.prefix: {} }

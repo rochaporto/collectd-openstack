@@ -1,105 +1,97 @@
 #!/usr/bin/env python
 #
-from keystoneclient.v2_0 import Client as KeystoneClient
-from cinderclient.v2.client import Client as CinderClient
+# vim: tabstop=4 shiftwidth=4
+
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; only version 2 of the License is applicable.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+#
+# Authors:
+#   Ricardo Rocha <ricardo@catalyst.net.nz>
+#
+# About this plugin:
+#   This plugin collects OpenStack cinder information, including stats on
+#   volumes and snapshots usage per tenant.
+#
+# TODO: Start using cinder v2 api
+#
+# collectd:
+#   http://collectd.org
+# OpenStack Cinder:
+#   http://docs.openstack.org/developer/cinder
+# collectd-python:
+#   http://collectd.org/documentation/manpages/collectd-python.5.shtml
+#
+#!/usr/bin/env python
+#
+from cinderclient.client import Client as CinderClient
 
 import collectd
+import traceback
 
-global NAME, OS_USERNAME, OS_PASSWORD, OS_TENANT_NAME, OS_AUTH_URL, OS_AUTH_STRATEGY, VERBOSE_LOGGING
+import base
 
-NAME = "cinder_plugin"
-OS_USERNAME = "username"
-OS_PASSWORD = "password"
-OS_TENANT_NAME = "tenantname"
-OS_AUTH_URL = "http://localhost:5000/v2.0"
-OS_AUTH_STRATEGY = "keystone"
-VERBOSE_LOGGING = False
+class CinderPlugin(base.Base):
 
-def get_stats(user, passwd, tenant, url, host=None):
-    keystone = KeystoneClient(username=user, password=passwd, tenant_name=tenant, auth_url=url)
+    def __init__(self):
+        base.Base.__init__(self)
+        self.prefix = 'openstack-cinder'
 
-    # Find my uuid
-    user_list = keystone.users.list()
-    admin_uuid = ""
-    for usr in user_list:
-        if usr.name == user:
-            admin_uuid = usr.id
+    def get_stats(self):
+        """Retrieves stats from cinder"""
+        keystone = self.get_keystone()
 
-    # Find out which tenants I have roles in
-    tenant_list = keystone.tenants.list()
-    my_tenants = list()
-    for tenant in tenant_list:
-        if keystone.users.list_roles(user=admin_uuid, tenant=tenant.id):
-            my_tenants.append( { "name": tenant.name, "id": tenant.id } )
+        tenant_list = keystone.tenants.list()
 
-    prefix = "openstack.cinder"
+        tenants = {}
+        data = { self.prefix: {} }
+        for tenant in tenant_list:
+            tenants[tenant.id] = tenant.name
+            data[self.prefix][tenant.name] = {
+                'volumes': { 'count': 0, 'bytes': 0 },
+                'volume-snapshots': { 'count': 0, 'bytes': 0 }
+            }
 
-    # Default data structure
-    data = {}
-    data["%s.total.images.count" % prefix] = 0
-    data["%s.total.images.bytes" % prefix] = 0
+        client = CinderClient('1', self.username, self.password, self.tenant, self.auth_url)
 
-    cinder_endpoint = keystone.service_catalog.url_for(service_type='volume')
-    # for tenant in tenant_list:
-    for tenant in my_tenants:
-        client = CinderClient(cinder_endpoint, token=keystone.auth_token)
+        # Get count and bytes for volumes
+        volumes = client.volumes.list()
+        for volume in volumes:
+            tenant = tenants[getattr(volume, 'os-vol-tenant-attr:tenant_id')]
+            data[self.prefix][tenant]['volumes']['count'] += 1
+            data[self.prefix][tenant]['volumes']['bytes'] += (volume.size * 1024 * 1024 * 1024)
 
-        tenant_name = tenant['name']
+        # Snapshots for tenant
+        volume_snapshots = client.volume_snapshots.list()
+        for snapshot in volume_snapshots:
+            tenant = tenants[getattr(snapshot, 'os-vol-tenant-attr:tenant_id')]
+            data[self.prefix][tenant]['volume-snapshots']['count'] += 1
+            data[self.prefix][tenant]['volume-snapshots']['bytes'] += (snapshot.size * 1024 * 1024 * 1024)
 
-        data["%s.%s.volumes.count" % (prefix, tenant_name)] = 0
-        data["%s.%s.volumes.bytes" % (prefix, tenant_name)] = 0
+        return data
 
-        volume_list = client.volumes.list()
-
-        for volume in volume_list:
-            data["%s.total.volumes.count" % prefix] += 1
-            data["%s.total.volumes.bytes" % prefix] += int(volume['size'])
-            data["%s.%s.volumes.count" % (prefix, tenant_name)] += 1
-            data["%s.%s.volumes.bytes" % (prefix, tenant_name)] += int(volume['size'])
-
-    return data
+try:
+    plugin = CinderPlugin()
+except Exception as exc:
+    collectd.error("openstack-cinder: failed to initialize cinder plugin :: %s :: %s"
+            % (exc, traceback.format_exc()))
 
 def configure_callback(conf):
     """Received configuration information"""
-    global OS_USERNAME, OS_PASSWORD, OS_TENANT_NAME, OS_AUTH_URL
-    for node in conf.children:
-        if node.key == "Username":
-            OS_USERNAME = node.values[0]
-        elif node.key == "Password":
-            OS_PASSWORD = node.values[0]
-        elif node.key == "TenantName":
-            OS_TENANT_NAME = node.values[0]
-        elif node.key == "AuthURL":
-            OS_AUTH_URL = node.values[0]
-        elif node.key == "Verbose":
-            VERBOSE_LOGGING = node.values[0]
-        else:
-            logger("warn", "Unknown config key: %s" % node.key)
+    plugin.config_callback(conf)
 
 def read_callback():
-    logger("verb", "read_callback")
-
-    info = get_stats(OS_USERNAME, OS_PASSWORD, OS_TENANT_NAME, OS_AUTH_URL)
-
-    if not info:
-        logger("err", "No information received")
-        return
-
-    for key in info.keys():
-        logger('verb', 'Dispatching %s : %i' % (key, int(info[key])))
-        val = collectd.Values(plugin=key)
-        val.type = 'gauge'
-        val.values = [int(info[key])]
-        val.dispatch()
-
-def logger(t, msg):
-    if t == 'err':
-        collectd.error('%s: %s' % (NAME, msg))
-    if t == 'warn':
-        collectd.warning('%s: %s' % (NAME, msg))
-    elif t == 'verb' and VERBOSE_LOGGING == True:
-        collectd.info('%s: %s' % (NAME, msg))
+    """Callback triggerred by collectd on read"""
+    plugin.read_callback()
 
 collectd.register_config(configure_callback)
-collectd.warning("Initializing cinder plugin")
 collectd.register_read(read_callback)
