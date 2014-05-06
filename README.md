@@ -95,15 +95,21 @@ Please log tickets and issues at the [github home](https://github.com/rochaporto
 
 [These instructions](http://packaging.ubuntu.com/html/packaging-new-software.html) should give full details.
 
-Assuming pbuilder is set for precise:
+In summary, do this once to prepare your environment:
 ```
 pbuilder-dist precise create
 ```
 
-follow these basic steps, including uploading to the ppa (example for a precise release):
-
+and for every release (from master):
 ```
-bzr builddeb -- -S -us -uc
-pbuilder-dist precise build ../collectd-openstack_0.1-2ubuntu1.dsc_source.dsc
-dput ppa:rocha-porto/collectd collectd-openstack_0.1-2ubuntu1_source.changes
+wget https://github.com/rochaporto/collectd-openstack/archive/master.zip
+cd /tmp
+unzip master.zip
+tar zcvf collectd-openstack-0.2.tar.gz collectd-openstack-master/
+bzr dh-make collectd-openstack 0.2 collectd-openstack-0.2.tar.gz
+cd collectd-openstack
+bzr builddeb -S
+cd ../build-area
+pbuilder-dist precise build collectd-openstack_0.2-1ubuntu1.dsc
+dput ppa:rocha-porto/collectd ../collectd-openstack_0.2-1ubuntu1_source.changes
 ```
