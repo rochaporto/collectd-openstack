@@ -1,3 +1,10 @@
+collectd-openstack (0.2-1ubuntu1) precise; urgency=low
+
+  * Added dependency on python-cinderclient.
+  * Update for new upstream release.
+
+ -- Ricardo Rocha <ricardo@catalyst.net.nz>  Tue, 06 May 2014 12:31:06 +0200
+
 collectd-openstack (0.1-2ubuntu1) precise; urgency=low
 
   * Initial release.
