@@ -1,4 +1,4 @@
-collectd-openstack (0.3-1ubuntu2) precise; urgency=low
+collectd-openstack (0.3-1ubuntu1) precise; urgency=low
 
   * Update for new upstream release.
 
