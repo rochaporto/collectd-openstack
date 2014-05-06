@@ -38,7 +38,7 @@ class Base(object):
         self.password = '123456'
         self.tenant = 'openstack'
         self.auth_url = 'http://api.example.com:5000/v2.0'
-        self.verbose = True
+        self.verbose = False
         self.prefix = ''
 
     def get_keystone(self):
@@ -58,7 +58,8 @@ class Base(object):
             elif node.key == "AuthURL":
                 self.auth_url = node.values[0]
             elif node.key == "Verbose":
-                self.verbose = node.values[0]
+                if node.values[0] in ['True', 'true']:
+                    self.verbose = True
             elif node.key == "Prefix":
                 self.prefix = node.values[0]
             else:
@@ -113,5 +114,6 @@ class Base(object):
         collectd.error('Not implemented, should be subclassed')
 
     def logverbose(self, msg):
-        collectd.info("%s: %s" % (self.prefix, msg))
+        if self.verbose:
+            collectd.info("%s: %s" % (self.prefix, msg))
 
