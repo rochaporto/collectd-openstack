@@ -11,8 +11,8 @@ It includes plugins to monitor the different components, including:
 * Keystone
 * Nova
 * Swift
-
-The original code was taken from the [rackspace chef cookbook](https://github.com/rochaporto/openstack-monitoring), and adapted as needed.
+* Cinder
+* Neutron
 
 ## Requirements
 
@@ -41,12 +41,11 @@ should follow some similar to:
     Import "keystone_plugin"
 
     <Module "keystone_plugin">
-        Verbose false
-                AuthURL "https://api.example.com:5000/v2.0"
-                Username "admin"
-                Password "123456"
-                TenantName "openstack"
-                Verbose "False"
+        Username "admin"
+        Password "123456"
+        TenantName "openstack"
+        AuthURL "https://api.example.com:5000/v2.0"
+        Verbose "False"
     </Module>
 </Plugin>
 ```
@@ -75,8 +74,6 @@ It has plenty of docs on how to use it, but for our specific plugins:
 The debian packaging files are provided, but don't expect the deb in the official repos.
 
 ## Development
-
-Most of the code was taken from other sources, and adapted as needed.
 
 All contributions more than welcome, just send pull requests.
 

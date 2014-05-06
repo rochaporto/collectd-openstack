@@ -26,9 +26,12 @@
 # collectd-python:
 #   http://collectd.org/documentation/manpages/collectd-python.5.shtml
 #
-import collectd
+from keystoneclient.v2_0 import Client as KeystoneClient
 
-class Helper(object):
+import collectd
+import traceback
+
+class Base(object):
 
     def __init__(self):
         self.username = 'admin'
@@ -38,9 +41,13 @@ class Helper(object):
         self.verbose = True
         self.prefix = ''
 
-    def config(self, conf, prefix=None):
+    def get_keystone(self):
+        """Returns a Keystone.Client instance."""
+        return KeystoneClient(username=self.username, password=self.password, 
+                tenant_name=self.tenant, auth_url=self.auth_url)
+
+    def config_callback(self, conf):
         """Takes a collectd conf object and fills in the local config."""
-        self.prefix = prefix
         for node in conf.children:
             if node.key == "Username":
                 self.username = node.values[0]
@@ -79,7 +86,8 @@ class Helper(object):
                                     type, type_instance,
                                     stats[plugin][plugin_instance][type][type_instance])
         except Exception as exc:
-            collectd.error("%s: failed to dispatch values :: %s" % (self.prefix, exc))
+            collectd.error("%s: failed to dispatch values :: %s :: %s" 
+                    % (self.prefix, exc, traceback.format_exc()))
 
     def dispatch_value(self, plugin, plugin_instance, type, type_instance, value):
         """Looks for the given stat in stats, and dispatches it"""
@@ -92,6 +100,17 @@ class Helper(object):
         val.type_instance="%s-%s" % (type, type_instance)
         val.values=[value]
         val.dispatch()
+
+    def read_callback(self):
+        try:
+            stats = self.get_stats()
+        except Exception as exc:
+            collectd.error("%s: failed to get stats :: %s :: %s" 
+                    % (self.prefix, exc, traceback.format_exc()))
+        self.dispatch(stats)
+
+    def get_stats(self):
+        collectd.error('Not implemented, should be subclassed')
 
     def logverbose(self, msg):
         collectd.info("%s: %s" % (self.prefix, msg))

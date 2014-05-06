@@ -29,61 +29,55 @@
 # collectd-python:
 #   http://collectd.org/documentation/manpages/collectd-python.5.shtml
 #
-from keystoneclient.v2_0 import Client as KeystoneClient
 from glanceclient.v2.client import Client as GlanceClient
 
 import collectd
-from common import Helper
+import traceback
 
-global HELPER
+import base
 
-HELPER = Helper()
+class GlancePlugin(base.Base):
 
-def get_stats(user, passwd, tenant, url, host=None):
-    """Retrieves images stats from glance"""
-    keystone = KeystoneClient(username=user, password=passwd, tenant_name=tenant, auth_url=url)
+    def __init__(self):
+        base.Base.__init__(self)
+        self.prefix = 'openstack-glance'
 
-    # Find my uuid
-    user_list = keystone.users.list()
-    admin_uuid = ""
-    for usr in user_list:
-        if usr.name == user:
-            admin_uuid = usr.id
+    def get_stats(self):
+        """Retrieves images stats from glance"""
+        keystone = self.get_keystone()
 
-    # Find out which tenants I have roles in
-    tenant_list = keystone.tenants.list()
-    my_tenants = list()
-    for tenant in tenant_list:
-        if keystone.users.list_roles(user=admin_uuid, tenant=tenant.id):
-            my_tenants.append( { "name": tenant.name, "id": tenant.id } )
+        data = { self.prefix: {} }
+        glance_endpoint = keystone.service_catalog.url_for(service_type='image')
 
-    data = { HELPER.prefix: {} }
-    glance_endpoint = keystone.service_catalog.url_for(service_type='image')
-    for tenant in my_tenants:
-        client = GlanceClient(glance_endpoint, token=keystone.auth_token)
+        tenant_list = keystone.tenants.list()
+        for tenant in tenant_list:
+            client = GlanceClient(glance_endpoint, token=keystone.auth_token)
 
-        data[HELPER.prefix][tenant['name']] = { 'images': {} }
-        data_tenant = data[HELPER.prefix][tenant['name']]
-        data_tenant['images']['count'] = 0
-        data_tenant['images']['bytes'] = 0
+            data[self.prefix][tenant.name] = { 'images': {} }
+            data_tenant = data[self.prefix][tenant.name]
+            data_tenant['images']['count'] = 0
+            data_tenant['images']['bytes'] = 0
 
-        image_list = client.images.list()
-        for image in image_list:
-            data_tenant['images']['count'] += int(images['size'])
-            data_tenant['images']['bytes'] += int(images['size'])
+            image_list = client.images.list(tenant_id=tenant.name)
+            for image in image_list:
+                data_tenant['images']['count'] += 1
+                data_tenant['images']['bytes'] += int(image['size'])
             
-    return data
+        return data
 
+try:
+    plugin = GlancePlugin()
+except Exception as exc:
+    collectd.error("openstack-glance: failed to initialize glance plugin :: %s :: %s"
+            % (exc, traceback.format_exc()))
+    
 def configure_callback(conf):
     """Received configuration information"""
-    HELPER.config(conf, 'openstack-glance')
+    plugin.config_callback(conf)
 
 def read_callback():
-    """Callback to read values and dispatch"""
-    stats = get_stats(HELPER.username, HELPER.password, HELPER.tenant, HELPER.auth_url)
-    HELPER.dispatch(stats)
-
+    """Callback triggerred by collectd on read"""
+    plugin.read_callback()
 
 collectd.register_config(configure_callback)
-collectd.info("%s: initializing plugin" % HELPER.prefix)
 collectd.register_read(read_callback)
