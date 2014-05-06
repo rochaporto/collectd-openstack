@@ -2,7 +2,7 @@ collectd-openstack (0.3-1ubuntu1) precise; urgency=low
 
   * Update for new upstream release.
 
- -- Ricardo Rocha <ricardo@rocha-desk>  Tue, 06 May 2014 15:13:20 +1200
+ -- Ricardo Rocha <ricardo@catalyst.net.nz>  Tue, 06 May 2014 15:13:20 +1200
 
 collectd-openstack (0.2-1ubuntu1) precise; urgency=low
 
