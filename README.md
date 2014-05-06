@@ -102,8 +102,9 @@ pbuilder-dist precise create
 
 and for every release (from master):
 ```
+mkdir /tmp/build-collectd-os
+cd /tmp/build-collectd-os
 wget https://github.com/rochaporto/collectd-openstack/archive/master.zip
-cd /tmp
 unzip master.zip
 tar zcvf collectd-openstack-0.2.tar.gz collectd-openstack-master/
 bzr dh-make collectd-openstack 0.2 collectd-openstack-0.2.tar.gz
