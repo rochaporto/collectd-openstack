@@ -55,6 +55,9 @@ class NeutronPlugin(base.Base):
             data[self.prefix][tenant.name] = {
                 'networks': { 'count': 0 },
                 'subnets': { 'count': 0 },
+                'routers': { 'max': 0 },
+                'ports': { 'max': 0 },
+                'floatingips': { 'max': 0 },
             }
 
         neutron_endpoint = keystone.service_catalog.url_for(service_type='network')
@@ -68,6 +71,16 @@ class NeutronPlugin(base.Base):
             data[self.prefix][tenant]['networks']['count'] += 1
             for subnet in network['subnets']:
                 data[self.prefix][tenant]['subnets']['count'] += 1
+
+        # Get network quotas
+        for tenant in tenant_list:
+            quota = client.list_quotas(tenant_id=tenant.id)['quotas'][0]
+            collectd.error("%s" % quota)
+            data[self.prefix][tenant.name]['networks']['max'] = quota['network']
+            data[self.prefix][tenant.name]['subnets']['max'] = quota['subnet']
+            data[self.prefix][tenant.name]['routers']['max'] = quota['router']
+            data[self.prefix][tenant.name]['ports']['max'] = quota['port']
+            data[self.prefix][tenant.name]['floatingips']['max'] = quota['floatingip']
 
         return data
 
