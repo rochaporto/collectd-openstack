@@ -54,10 +54,10 @@ class NovaPlugin(base.Base):
             client = NovaClient('2', self.username, self.password, self.tenant, self.auth_url)
 
             data[self.prefix][tenant.name] = { 'limits': {}, 'quotas': {} }
-            data_tenant = data[self.prefix][tenant.name] 
+            data_tenant = data[self.prefix][tenant.name]
 
             # Get absolute limits for tenant
-            limits = client.limits.get(tenant_id=tenant.name).absolute
+            limits = client.limits.get(tenant_id=tenant.id).absolute
             for limit in limits:
                 data_tenant['limits'][limit.name] = limit.value
 
