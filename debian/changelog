@@ -1,4 +1,4 @@
-collectd-openstack (0.3-2ubuntu1) precise; urgency=medium
+collectd-openstack (0.4-1ubuntu) precise; urgency=low
 
   * Moved plugins to /usr/lib/collectd/plugins/openstack.
 
