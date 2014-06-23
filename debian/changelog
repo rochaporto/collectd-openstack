@@ -1,3 +1,9 @@
+collectd-openstack (0.3-2ubuntu1) precise; urgency=medium
+
+  * Moved plugins to /usr/lib/collectd/plugins/openstack.
+
+ -- Ricardo Rocha <ricardo@catalyst.net.nz>  Mon, 23 Jun 2014 15:54:45 +1200
+
 collectd-openstack (0.3-1ubuntu1) precise; urgency=low
 
   * Update for new upstream release.
