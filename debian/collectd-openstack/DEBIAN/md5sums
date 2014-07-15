@@ -1,7 +1,0 @@
-33d239b3436ed038c670ff1b728bb52d  usr/lib/collectd/plugins/ceph_plugin.py
-567cd467b467499924cab661c2b1a81f  usr/lib/collectd/plugins/cluster_stats.py
-213091e2d5ad870ba768eac0c476cb3d  usr/lib/collectd/plugins/glance_plugin.py
-0fccc8c251417b28d7ae7a68910f23df  usr/lib/collectd/plugins/keystone_plugin.py
-14151d8ee725fee89065af797060a394  usr/lib/collectd/plugins/nova_plugin.py
-8b55bc2d7cdf3108b83ee508d10cede3  usr/lib/collectd/plugins/swift_stats.py
-86c87d825860014e239205d2cf13625c  usr/share/doc/collectd-openstack/changelog.Debian.gz

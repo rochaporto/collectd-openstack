@@ -74,13 +74,14 @@ class NeutronPlugin(base.Base):
 
         # Get network quotas
         for tenant in tenant_list:
-            quota = client.list_quotas(tenant_id=tenant.id)['quotas'][0]
-            collectd.error("%s" % quota)
-            data[self.prefix][tenant.name]['networks']['max'] = quota['network']
-            data[self.prefix][tenant.name]['subnets']['max'] = quota['subnet']
-            data[self.prefix][tenant.name]['routers']['max'] = quota['router']
-            data[self.prefix][tenant.name]['ports']['max'] = quota['port']
-            data[self.prefix][tenant.name]['floatingips']['max'] = quota['floatingip']
+            quotas = client.list_quotas(tenant_id=tenant.id)['quotas']
+            if len(quotas) > 0:
+                quota = quotas[0]
+                data[self.prefix][tenant.name]['networks']['max'] = quota['network']
+                data[self.prefix][tenant.name]['subnets']['max'] = quota['subnet']
+                data[self.prefix][tenant.name]['routers']['max'] = quota['router']
+                data[self.prefix][tenant.name]['ports']['max'] = quota['port']
+                data[self.prefix][tenant.name]['floatingips']['max'] = quota['floatingip']
 
         return data
 
