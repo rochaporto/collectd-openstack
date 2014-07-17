@@ -66,14 +66,20 @@ class CinderPlugin(base.Base):
         # Get count and bytes for volumes
         volumes = client.volumes.list()
         for volume in volumes:
-            tenant = tenants[getattr(volume, 'os-vol-tenant-attr:tenant_id')]
+            try:
+                tenant = tenants[getattr(volume, 'os-vol-tenant-attr:tenant_id')]
+            except AttributeError:
+                continue
             data[self.prefix][tenant]['volumes']['count'] += 1
             data[self.prefix][tenant]['volumes']['bytes'] += (volume.size * 1024 * 1024 * 1024)
 
         # Snapshots for tenant
         volume_snapshots = client.volume_snapshots.list()
         for snapshot in volume_snapshots:
-            tenant = tenants[getattr(snapshot, 'os-vol-tenant-attr:tenant_id')]
+            try:
+                tenant = tenants[getattr(snapshot, 'os-vol-tenant-attr:tenant_id')]
+            except AttributeError:
+                continue
             data[self.prefix][tenant]['volume-snapshots']['count'] += 1
             data[self.prefix][tenant]['volume-snapshots']['bytes'] += (snapshot.size * 1024 * 1024 * 1024)
 

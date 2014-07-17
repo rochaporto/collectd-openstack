@@ -67,7 +67,10 @@ class NeutronPlugin(base.Base):
         # Get network count
         network_list = client.list_networks()['networks']
         for network in network_list:
-            tenant = tenants[network['tenant_id']]
+            try:
+                tenant = tenants[network['tenant_id']]
+            except KeyError:
+                continue
             data[self.prefix][tenant]['networks']['count'] += 1
             for subnet in network['subnets']:
                 data[self.prefix][tenant]['subnets']['count'] += 1
@@ -90,7 +93,7 @@ try:
 except Exception as exc:
     collectd.error("openstack-neutron: failed to initialize neutron plugin :: %s :: %s"
             % (exc, traceback.format_exc()))
-    
+
 def configure_callback(conf):
     """Received configuration information"""
     plugin.config_callback(conf)
