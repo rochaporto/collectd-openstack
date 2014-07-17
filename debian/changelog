@@ -1,3 +1,21 @@
+collectd-openstack (0.4.3-1ubuntu) precise; urgency=low
+
+  * Fixed #4: protect against missing tenant_id in cinder/neutron.
+
+ -- Ricardo Rocha <ricardo@catalyst.net.nz>  Fri, 18 Jul 2014 10:28:45 +1200
+
+collectd-openstack (0.4.2-1ubuntu) precise; urgency=low
+
+  * Fixed #3: neutron plugin crashes on missing quotas
+
+ -- Ricardo Rocha <ricardo@catalyst.net.nz>  Tue, 15 Jul 2014 17:28:45 +1200
+
+collectd-openstack (0.4.1-1ubuntu) precise; urgency=low
+
+  * Added missing __init__.py file in plugins directory.
+
+ -- Ricardo Rocha <ricardo@catalyst.net.nz>  Tue, 08 Jul 2014 15:54:45 +1200
+
 collectd-openstack (0.4-1ubuntu) precise; urgency=low
 
   * Moved plugins to /usr/lib/collectd/plugins/openstack.
