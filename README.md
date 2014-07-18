@@ -5,14 +5,43 @@ collectd-openstack
 
 A set of collectd plugins monitoring and publishing metrics for OpenStack components.
 
-It includes plugins to monitor the different components, including:
+## Screenshots
 
-* Glance
-* Keystone
-* Nova
-* Swift
-* Cinder
-* Neutron
+![image](https://raw.github.com/rochaporto/collectd-openstack/master/public/openstack-usage.png)
+
+## Plugins and Metrics
+
+There are several plugins, mapping to each of the openstack components.
+
+Find below a list of the available plugins and the metrics they publish.
+
+* cinder_plugin
+  * openstack-cinder.&lt;tenant>.volumes.count (number of tenant volumes)
+  * openstack-cinder.&lt;tenant>.volumes.bytes (total bytes of tenant volumes)
+  * openstack-cinder.&lt;tenant>.volume-snapshots.count (number of tenant snapshots)
+  * openstack-cinder.&lt;tenant>.volume-snapshots.bytes (total bytes of tenant snapshots)
+* glance_plugin
+  * openstack-glance.&lt;tenant>.images.count (number of tenant images)
+  * openstack-glance.&lt;tenant>.images.bytes (total bytes of tenant images)
+* keystone_plugin
+  * openstack-keystone.&lt;tenant>.users.count (number of tenant users)
+  * openstack-keystone.totals.tenants.count (total number of tenants)
+  * openstack-keystone.totals.users.count (total number of users)
+  * openstack-keystone.totals.services.count (total number of services)
+  * openstack-keystone.totals.endpoints.count (total number of endpoints)
+* neutron_plugin
+  * openstack-neutron.&lt;tenant>.networks.count (number of tenant networks)
+  * openstack-neutron.&lt;tenant>.subnets.count (number of tenant subnets)
+  * openstack-neutron.&lt;tenant>.routers.count (number of tenant routers)
+  * openstack-neutron.&lt;tenant>.ports.count (number of tenant ports)
+  * openstack-neutron.&lt;tenant>.floatingips.count (number of tenant floating ips)
+* nova_plugin
+  * openstack-nova.&lt;tenant>.limits.{maxImageMeta,maxPersonality,maxPersonalitySize,maxSecurityGroupRules,
+                                       maxSecurityGroups,maxServerMeta,maxTotalCores,maxTotalFloatingIps,
+                                       maxTotalInstances,maxTotalKeypairs,maxTotalRAMSize}
+    (limits on each metric, per tenant)
+  * openstack-nova.&lt;tenant>.quotas.{cores,fixed_ips,floating_ips,instances,key_pairs,,ram,security_groups}
+    (quotas on each metric, per tenant)
 
 ## Requirements
 
