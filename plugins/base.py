@@ -40,10 +40,11 @@ class Base(object):
         self.auth_url = 'http://api.example.com:5000/v2.0'
         self.verbose = False
         self.prefix = ''
+        self.interval = None
 
     def get_keystone(self):
         """Returns a Keystone.Client instance."""
-        return KeystoneClient(username=self.username, password=self.password, 
+        return KeystoneClient(username=self.username, password=self.password,
                 tenant_name=self.tenant, auth_url=self.auth_url)
 
     def config_callback(self, conf):
@@ -60,21 +61,35 @@ class Base(object):
             elif node.key == "Verbose":
                 if node.values[0] in ['True', 'true']:
                     self.verbose = True
+            elif node.key == "AllocationRatioCores":
+                self.AllocationRatioCores = float(node.values[0])
+            elif node.key == "AllocationRatioRam":
+                self.AllocationRatioRam = float(node.values[0])
+            elif node.key == "ReservedNodeCores":
+                self.ReservedNodeCores = float(node.values[0])
+            elif node.key == "ReservedNodeRamMB":
+                self.ReservedNodeRamMB = float(node.values[0])
+            elif node.key == "ReservedCores":
+                self.ReservedCores = float(node.values[0])
+            elif node.key == "ReservedRamMB":
+                self.ReservedRamMB = float(node.values[0])
             elif node.key == "Prefix":
                 self.prefix = node.values[0]
+            elif node.key == 'Interval':
+                self.interval = int(node.values[0])
             else:
                 collectd.warning("%s: unknown config key: %s" % (self.prefix, node.key))
 
     def dispatch(self, stats):
         """
         Dispatches the given stats.
-        
+
         stats should be something like:
 
         {'plugin': {'plugin_instance': {'type': {'type_instance': <value>, ...}}}}
         """
         if not stats:
-            collectd.error("%s: failed to retrieve stats from glance" % self.prefix)
+            collectd.error("%s: failed to retrieve stats" % self.prefix)
             return
 
         self.logverbose("dispatching %d new stats :: %s" % (len(stats), stats))
@@ -82,31 +97,41 @@ class Base(object):
             for plugin in stats.keys():
                 for plugin_instance in stats[plugin].keys():
                     for type in stats[plugin][plugin_instance].keys():
-                        for type_instance in stats[plugin][plugin_instance][type].keys():
-                            self.dispatch_value(plugin, plugin_instance, 
-                                    type, type_instance,
-                                    stats[plugin][plugin_instance][type][type_instance])
+                        type_value = stats[plugin][plugin_instance][type]
+                        if not isinstance(type_value, dict):
+                            self.dispatch_value(plugin, plugin_instance, type, None, type_value)
+                        else:
+                          for type_instance in stats[plugin][plugin_instance][type].keys():
+                                self.dispatch_value(plugin, plugin_instance,
+                                        type, type_instance,
+                                        stats[plugin][plugin_instance][type][type_instance])
         except Exception as exc:
-            collectd.error("%s: failed to dispatch values :: %s :: %s" 
+            collectd.error("%s: failed to dispatch values :: %s :: %s"
                     % (self.prefix, exc, traceback.format_exc()))
 
     def dispatch_value(self, plugin, plugin_instance, type, type_instance, value):
         """Looks for the given stat in stats, and dispatches it"""
-        self.logverbose("dispatching value %s.%s.%s.%s=%s" 
+        self.logverbose("dispatching value %s.%s.%s.%s=%s"
                 % (plugin, plugin_instance, type, type_instance, value))
-    
+
         val = collectd.Values(type='gauge')
         val.plugin=plugin
         val.plugin_instance=plugin_instance
-        val.type_instance="%s-%s" % (type, type_instance)
+        if type_instance is not None:
+            val.type_instance="%s-%s" % (type, type_instance)
+        else:
+            val.type_instance=type
         val.values=[value]
+        val.interval = self.interval
         val.dispatch()
+        self.logverbose("sent metric %s.%s.%s.%s.%s"
+                % (plugin, plugin_instance, type, type_instance, value))
 
     def read_callback(self):
         try:
             stats = self.get_stats()
         except Exception as exc:
-            collectd.error("%s: failed to get stats :: %s :: %s" 
+            collectd.error("%s: failed to get stats :: %s :: %s"
                     % (self.prefix, exc, traceback.format_exc()))
         self.dispatch(stats)
 

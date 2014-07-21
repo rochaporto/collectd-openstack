@@ -42,6 +42,16 @@ Find below a list of the available plugins and the metrics they publish.
     (limits on each metric, per tenant)
   * openstack-nova.&lt;tenant>.quotas.{cores,fixed_ips,floating_ips,instances,key_pairs,,ram,security_groups}
     (quotas on each metric, per tenant)
+  * openstack-nova.cluster.gauge.config-AllocationRatioCores (overcommit ratio for vcpus)
+  * openstack-nova.cluster.gauge.config-AllocationRatioRamMB (overcommit ratio for ram - in MB)
+  * openstack-nova.cluster.gauge.config-ReservedCores (reserved vcpus on the whole cluster)
+  * openstack-nova.cluster.gauge.config-ReservedRamMB (reserved ram on the whole cluster - in MB)
+  * openstack-nova.cluster.gauge.config-ReservedNodeCores (reserved cores per node)
+  * openstack-nova.cluster.gauge.config-ReservedNodeRamMB (reserved ram per node - in MB)
+  * openstack-nova.&lt;hypervisor-hostname>.{current_workload,free_disk_gb,free_ram_mb,hypervisor_version,
+                                             memory_mb,memory_mb_overcommit,memory_mb_overcommit_withreserve,
+                                             memory_mb_used,running_vms,vcpus,vcpus_overcommit,
+                                             vcpus_overcommit_withreserve,vcpus_used}
 
 ## Requirements
 

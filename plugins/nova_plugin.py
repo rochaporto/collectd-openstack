@@ -49,16 +49,18 @@ class NovaPlugin(base.Base):
 
         tenant_list = keystone.tenants.list()
 
-        data = { self.prefix: {} }
+        data = { self.prefix: { 'cluster': { 'config': {} }, } }
         for tenant in tenant_list:
             client = NovaClient('2', self.username, self.password, self.tenant, self.auth_url)
 
-            data[self.prefix][tenant.name] = { 'limits': {}, 'quotas': {} }
-            data_tenant = data[self.prefix][tenant.name]
+            data[self.prefix]["tenant-%s" % tenant.name] = { 'limits': {}, 'quotas': {} }
+            data_tenant = data[self.prefix]["tenant-%s" % tenant.name]
 
             # Get absolute limits for tenant
             limits = client.limits.get(tenant_id=tenant.id).absolute
             for limit in limits:
+                if 'ram' in limit.name.lower():
+                    limit.value = limit.value * 1024.0 * 1024.0
                 data_tenant['limits'][limit.name] = limit.value
 
             # Quotas for tenant
@@ -67,6 +69,30 @@ class NovaPlugin(base.Base):
                 'key_pairs', 'ram', 'security_groups'):
                 data_tenant['quotas'][item] = getattr(quotas, item)
 
+        # Cluster allocation / reserved values
+        for item in ('AllocationRatioCores', 'AllocationRatioRam',
+                'ReservedNodeCores', 'ReservedNodeRamMB',
+                'ReservedCores', 'ReservedRamMB'):
+            data[self.prefix]['cluster']['config'][item] = getattr(self, item)
+
+        # Hypervisor information
+        hypervisors = client.hypervisors.list()
+        for hypervisor in hypervisors:
+            name = "hypervisor-%s" % hypervisor.hypervisor_hostname
+            data[self.prefix][name] = {}
+            for item in ('current_workload', 'free_disk_gb', 'free_ram_mb',
+                    'hypervisor_version', 'memory_mb', 'memory_mb_used',
+                    'running_vms', 'vcpus', 'vcpus_used'):
+                data[self.prefix][name][item] = getattr(hypervisor, item)
+            data[self.prefix][name]['memory_mb_overcommit'] = \
+                data[self.prefix][name]['memory_mb'] * data[self.prefix]['cluster']['config']['AllocationRatioRam']
+            data[self.prefix][name]['memory_mb_overcommit_withreserve'] = \
+                data[self.prefix][name]['memory_mb_overcommit'] - data[self.prefix]['cluster']['config']['ReservedNodeRamMB']
+            data[self.prefix][name]['vcpus_overcommit'] = \
+                data[self.prefix][name]['vcpus'] * data[self.prefix]['cluster']['config']['AllocationRatioCores']
+            data[self.prefix][name]['vcpus_overcommit_withreserve'] = \
+                data[self.prefix][name]['vcpus_overcommit'] - data[self.prefix]['cluster']['config']['ReservedNodeCores']
+
         return data
 
 try:
@@ -74,7 +100,7 @@ try:
 except Exception as exc:
     collectd.error("openstack-nova: failed to initialize nova plugin :: %s :: %s"
             % (exc, traceback.format_exc()))
-    
+
 def configure_callback(conf):
     """Received configuration information"""
     plugin.config_callback(conf)
