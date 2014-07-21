@@ -1,3 +1,13 @@
+collectd-openstack (0.5.0-1ubuntu) precise; urgency=low
+
+  * Bugs fixed:
+    - #1: allow overcommit ratios (memory and cpu)
+    - #6: allow reserved values (for memory and cpus)
+  * Added interval configuration param
+  * Updated metrics with overcommit/reserved values (check README)
+
+ -- Ricardo Rocha <ricardo@catalyst.net.nz>  Tue, 22 Jul 2014 10:28:45 +1200
+
 collectd-openstack (0.4.3-1ubuntu) precise; urgency=low
 
   * Fixed #4: protect against missing tenant_id in cinder/neutron.
