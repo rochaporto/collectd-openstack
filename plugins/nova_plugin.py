@@ -64,7 +64,7 @@ class NovaPlugin(base.Base):
                 data_tenant['limits'][limit.name] = limit.value
 
             # Quotas for tenant
-            quotas = client.quotas.get(tenant.name)
+            quotas = client.quotas.get(tenant.id)
             for item in ('cores', 'fixed_ips', 'floating_ips', 'instances',
                 'key_pairs', 'ram', 'security_groups'):
                 data_tenant['quotas'][item] = getattr(quotas, item)
