@@ -54,34 +54,26 @@ class CinderPlugin(base.Base):
 
         tenants = {}
         data = { self.prefix: {} }
+
+        client = CinderClient('1', self.username, self.password, self.tenant, self.auth_url)
+        # Get count and bytes for volumes
         for tenant in tenant_list:
-            tenants[tenant.id] = tenant.name
             data[self.prefix][tenant.name] = {
                 'volumes': { 'count': 0, 'bytes': 0 },
                 'volume-snapshots': { 'count': 0, 'bytes': 0 }
             }
 
-        client = CinderClient('1', self.username, self.password, self.tenant, self.auth_url)
+            # volumes for tenant
+            volumes = client.volumes.list(search_opts={'tenant_id': tenant.id})
+            for volume in volumes:
+                data[self.prefix][tenant.name]['volumes']['count'] += 1
+                data[self.prefix][tenant.name]['volumes']['bytes'] += (volume.size * 1024 * 1024 * 1024)
 
-        # Get count and bytes for volumes
-        volumes = client.volumes.list()
-        for volume in volumes:
-            try:
-                tenant = tenants[getattr(volume, 'os-vol-tenant-attr:tenant_id')]
-            except AttributeError:
-                continue
-            data[self.prefix][tenant]['volumes']['count'] += 1
-            data[self.prefix][tenant]['volumes']['bytes'] += (volume.size * 1024 * 1024 * 1024)
-
-        # Snapshots for tenant
-        volume_snapshots = client.volume_snapshots.list()
-        for snapshot in volume_snapshots:
-            try:
-                tenant = tenants[getattr(snapshot, 'os-vol-tenant-attr:tenant_id')]
-            except AttributeError:
-                continue
-            data[self.prefix][tenant]['volume-snapshots']['count'] += 1
-            data[self.prefix][tenant]['volume-snapshots']['bytes'] += (snapshot.size * 1024 * 1024 * 1024)
+            # snapshots for tenant
+            volume_snapshots = client.volume_snapshots.list(search_opts={'tenant_id': tenant.id})
+            for snapshot in volume_snapshots:
+                data[self.prefix][tenant.name]['volume-snapshots']['count'] += 1
+                data[self.prefix][tenant.name]['volume-snapshots']['bytes'] += (snapshot.size * 1024 * 1024 * 1024)
 
         return data
 
@@ -100,4 +92,4 @@ def read_callback():
     plugin.read_callback()
 
 collectd.register_config(configure_callback)
-collectd.register_read(read_callback)
+collectd.register_read(read_callback, plugin.interval)
