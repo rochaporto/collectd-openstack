@@ -52,7 +52,7 @@ class NeutronPlugin(base.Base):
         tenant_list = keystone.tenants.list()
         for tenant in tenant_list:
             tenants[tenant.id] = tenant.name
-            data[self.prefix][tenant.name] = {
+            data[self.prefix]["tenant-%s" % tenant.name] = {
                 'networks': { 'count': 0 },
                 'subnets': { 'count': 0 },
                 'routers': { 'max': 0 },
@@ -71,20 +71,21 @@ class NeutronPlugin(base.Base):
                 tenant = tenants[network['tenant_id']]
             except KeyError:
                 continue
-            data[self.prefix][tenant]['networks']['count'] += 1
+            data[self.prefix]["tenant-%s" % tenant]['networks']['count'] += 1
             for subnet in network['subnets']:
-                data[self.prefix][tenant]['subnets']['count'] += 1
+                data[self.prefix]["tenant-%s" % tenant]['subnets']['count'] += 1
 
         # Get network quotas
         for tenant in tenant_list:
             quotas = client.list_quotas(tenant_id=tenant.id)['quotas']
+            data_tenant = data[self.prefix]["tenant-%s" % tenant.name]
             if len(quotas) > 0:
                 quota = quotas[0]
-                data[self.prefix][tenant.name]['networks']['max'] = quota['network']
-                data[self.prefix][tenant.name]['subnets']['max'] = quota['subnet']
-                data[self.prefix][tenant.name]['routers']['max'] = quota['router']
-                data[self.prefix][tenant.name]['ports']['max'] = quota['port']
-                data[self.prefix][tenant.name]['floatingips']['max'] = quota['floatingip']
+                data_tenant['networks']['max'] = quota['network']
+                data_tenant['subnets']['max'] = quota['subnet']
+                data_tenant['routers']['max'] = quota['router']
+                data_tenant['ports']['max'] = quota['port']
+                data_tenant['floatingips']['max'] = quota['floatingip']
 
         return data
 

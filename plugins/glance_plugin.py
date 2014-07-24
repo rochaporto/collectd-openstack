@@ -52,8 +52,8 @@ class GlancePlugin(base.Base):
         tenant_list = keystone.tenants.list()
         client = GlanceClient(glance_endpoint, token=keystone.auth_token)
         for tenant in tenant_list:
-            data[self.prefix][tenant.name] = { 'images': {} }
-            data_tenant = data[self.prefix][tenant.name]
+            data[self.prefix]["tenant-%s" % tenant.name] = { 'images': {} }
+            data_tenant = data[self.prefix]["tenant-%s" % tenant.name]
             data_tenant['images']['count'] = 0
             data_tenant['images']['bytes'] = 0
 
