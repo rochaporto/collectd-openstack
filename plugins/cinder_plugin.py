@@ -58,22 +58,23 @@ class CinderPlugin(base.Base):
         client = CinderClient('1', self.username, self.password, self.tenant, self.auth_url)
         # Get count and bytes for volumes
         for tenant in tenant_list:
-            data[self.prefix][tenant.name] = {
+            data[self.prefix]["tenant-%s" % tenant.name] = {
                 'volumes': { 'count': 0, 'bytes': 0 },
                 'volume-snapshots': { 'count': 0, 'bytes': 0 }
             }
+            data_tenant = data[self.prefix]["tenant-%s" % tenant.name]
 
             # volumes for tenant
             volumes = client.volumes.list(search_opts={'tenant_id': tenant.id})
             for volume in volumes:
-                data[self.prefix][tenant.name]['volumes']['count'] += 1
-                data[self.prefix][tenant.name]['volumes']['bytes'] += (volume.size * 1024 * 1024 * 1024)
+                data_tenant['volumes']['count'] += 1
+                data_tenant['volumes']['bytes'] += (volume.size * 1024 * 1024 * 1024)
 
             # snapshots for tenant
             volume_snapshots = client.volume_snapshots.list(search_opts={'tenant_id': tenant.id})
             for snapshot in volume_snapshots:
-                data[self.prefix][tenant.name]['volume-snapshots']['count'] += 1
-                data[self.prefix][tenant.name]['volume-snapshots']['bytes'] += (snapshot.size * 1024 * 1024 * 1024)
+                data_tenant['volume-snapshots']['count'] += 1
+                data_tenant['volume-snapshots']['bytes'] += (snapshot.size * 1024 * 1024 * 1024)
 
         return data
 
