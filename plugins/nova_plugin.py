@@ -50,9 +50,8 @@ class NovaPlugin(base.Base):
         tenant_list = keystone.tenants.list()
 
         data = { self.prefix: { 'cluster': { 'config': {} }, } }
+        client = NovaClient('2', self.username, self.password, self.tenant, self.auth_url)
         for tenant in tenant_list:
-            client = NovaClient('2', self.username, self.password, self.tenant, self.auth_url)
-
             data[self.prefix]["tenant-%s" % tenant.name] = { 'limits': {}, 'quotas': {} }
             data_tenant = data[self.prefix]["tenant-%s" % tenant.name]
 
@@ -110,4 +109,4 @@ def read_callback():
     plugin.read_callback()
 
 collectd.register_config(configure_callback)
-collectd.register_read(read_callback)
+collectd.register_read(read_callback, plugin.interval)

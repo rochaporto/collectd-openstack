@@ -50,9 +50,8 @@ class GlancePlugin(base.Base):
         glance_endpoint = keystone.service_catalog.url_for(service_type='image')
 
         tenant_list = keystone.tenants.list()
+        client = GlanceClient(glance_endpoint, token=keystone.auth_token)
         for tenant in tenant_list:
-            client = GlanceClient(glance_endpoint, token=keystone.auth_token)
-
             data[self.prefix][tenant.name] = { 'images': {} }
             data_tenant = data[self.prefix][tenant.name]
             data_tenant['images']['count'] = 0
@@ -62,7 +61,7 @@ class GlancePlugin(base.Base):
             for image in image_list:
                 data_tenant['images']['count'] += 1
                 data_tenant['images']['bytes'] += int(image['size'])
-            
+
         return data
 
 try:
@@ -70,7 +69,7 @@ try:
 except Exception as exc:
     collectd.error("openstack-glance: failed to initialize glance plugin :: %s :: %s"
             % (exc, traceback.format_exc()))
-    
+
 def configure_callback(conf):
     """Received configuration information"""
     plugin.config_callback(conf)
@@ -80,4 +79,4 @@ def read_callback():
     plugin.read_callback()
 
 collectd.register_config(configure_callback)
-collectd.register_read(read_callback)
+collectd.register_read(read_callback, plugin.interval)
