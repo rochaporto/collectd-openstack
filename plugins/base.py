@@ -29,6 +29,7 @@
 from keystoneclient.v2_0 import Client as KeystoneClient
 
 import collectd
+import datetime
 import traceback
 
 class Base(object):
@@ -39,8 +40,9 @@ class Base(object):
         self.tenant = 'openstack'
         self.auth_url = 'http://api.example.com:5000/v2.0'
         self.verbose = False
+        self.debug = False
         self.prefix = ''
-        self.interval = None
+        self.interval = 60.0
 
     def get_keystone(self):
         """Returns a Keystone.Client instance."""
@@ -61,6 +63,9 @@ class Base(object):
             elif node.key == "Verbose":
                 if node.values[0] in ['True', 'true']:
                     self.verbose = True
+            elif node.key == "Debug":
+                if node.values[0] in ['True', 'true']:
+                    self.debug = True
             elif node.key == "AllocationRatioCores":
                 self.AllocationRatioCores = float(node.values[0])
             elif node.key == "AllocationRatioRam":
@@ -76,7 +81,7 @@ class Base(object):
             elif node.key == "Prefix":
                 self.prefix = node.values[0]
             elif node.key == 'Interval':
-                self.interval = int(node.values[0])
+                self.interval = float(node.values[0])
             else:
                 collectd.warning("%s: unknown config key: %s" % (self.prefix, node.key))
 
@@ -92,7 +97,7 @@ class Base(object):
             collectd.error("%s: failed to retrieve stats" % self.prefix)
             return
 
-        self.logverbose("dispatching %d new stats :: %s" % (len(stats), stats))
+        self.logdebug("dispatching %d new stats :: %s" % (len(stats), stats))
         try:
             for plugin in stats.keys():
                 for plugin_instance in stats[plugin].keys():
@@ -111,7 +116,7 @@ class Base(object):
 
     def dispatch_value(self, plugin, plugin_instance, type, type_instance, value):
         """Looks for the given stat in stats, and dispatches it"""
-        self.logverbose("dispatching value %s.%s.%s.%s=%s"
+        self.logdebug("dispatching value %s.%s.%s.%s=%s"
                 % (plugin, plugin_instance, type, type_instance, value))
 
         val = collectd.Values(type='gauge')
@@ -124,12 +129,15 @@ class Base(object):
         val.values=[value]
         val.interval = self.interval
         val.dispatch()
-        self.logverbose("sent metric %s.%s.%s.%s.%s"
+        self.logdebug("sent metric %s.%s.%s.%s.%s"
                 % (plugin, plugin_instance, type, type_instance, value))
 
     def read_callback(self):
         try:
+            start = datetime.datetime.now()
             stats = self.get_stats()
+            self.logverbose("collectd new data from service :: took %d seconds"
+                    % (datetime.datetime.now() - start).seconds)
         except Exception as exc:
             collectd.error("%s: failed to get stats :: %s :: %s"
                     % (self.prefix, exc, traceback.format_exc()))
@@ -141,4 +149,8 @@ class Base(object):
     def logverbose(self, msg):
         if self.verbose:
             collectd.info("%s: %s" % (self.prefix, msg))
+
+    def logdebug(self, msg):
+        if self.debug:
+            collectd.debug("%s: %s" % (self.prefix, msg))
 
