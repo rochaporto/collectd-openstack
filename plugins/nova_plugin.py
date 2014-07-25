@@ -52,6 +52,8 @@ class NovaPlugin(base.Base):
         data = { self.prefix: { 'cluster': { 'config': {} }, } }
         client = NovaClient('2', self.username, self.password, self.tenant, self.auth_url)
         for tenant in tenant_list:
+            # FIX: nasty but works for now (tenant.id not being taken below :()
+            client.tenant_id = tenant.id
             data[self.prefix]["tenant-%s" % tenant.name] = { 'limits': {}, 'quotas': {} }
             data_tenant = data[self.prefix]["tenant-%s" % tenant.name]
 
@@ -66,6 +68,8 @@ class NovaPlugin(base.Base):
             quotas = client.quotas.get(tenant.id)
             for item in ('cores', 'fixed_ips', 'floating_ips', 'instances',
                 'key_pairs', 'ram', 'security_groups'):
+                if item == 'ram':
+                    setattr(quotas, item, getattr(quotas, item) * 1024 * 1024)
                 data_tenant['quotas'][item] = getattr(quotas, item)
 
         # Cluster allocation / reserved values
