@@ -1,3 +1,15 @@
+collectd-openstack (0.6.0-1ubuntu) precise; urgency=low
+
+  * Bugs fixed:
+    - #13: nova maxTotalRAMSize value is bogus
+    - #11: interval not taken into account
+    - #10: enable decent verbose logging
+    - #9: quota values incorrect
+    - #8: floating ip data now showing correctly
+    - #7: volumes data missing
+
+ -- Ricardo Rocha <ricardo@catalyst.net.nz>  Fri, 25 Jul 2014 16:09:45 +1200
+
 collectd-openstack (0.5.0-1ubuntu) precise; urgency=low
 
   * Bugs fixed:
