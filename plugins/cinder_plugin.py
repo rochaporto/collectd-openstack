@@ -55,26 +55,56 @@ class CinderPlugin(base.Base):
         tenants = {}
         data = { self.prefix: {} }
 
-        client = CinderClient('1', self.username, self.password, self.tenant, self.auth_url)
-        # Get count and bytes for volumes
+        # Initialize tenant struct
         for tenant in tenant_list:
+            tenants[tenant.id] = tenant.name
             data[self.prefix]["tenant-%s" % tenant.name] = {
+                'limits': {}, 'quotas': {},
                 'volumes': { 'count': 0, 'bytes': 0 },
                 'volume-snapshots': { 'count': 0, 'bytes': 0 }
             }
+
+        client = CinderClient('1', self.username, self.password, self.tenant, self.auth_url)
+        # Collect limits for each tenant (quotas data is bogus in havana)
+        for tenant in tenant_list:
             data_tenant = data[self.prefix]["tenant-%s" % tenant.name]
+            # limits call in havana does not expose a tenant_id param :(
+            client2 = CinderClient('1', self.username, self.password, tenant.name, self.auth_url)
+            try:
+                limits = client2.limits.get().absolute
+            except Exception:
+                continue
+            for limit in limits:
+                if 'Giga' in limit.name:
+                    limit.value = limit.value * 1024 * 1024 * 1024
+                data_tenant['limits'][limit.name] = limit.value
 
-            # volumes for tenant
-            volumes = client.volumes.list(search_opts={'tenant_id': tenant.id})
-            for volume in volumes:
-                data_tenant['volumes']['count'] += 1
-                data_tenant['volumes']['bytes'] += (volume.size * 1024 * 1024 * 1024)
+        # Ideally we would use limits, but the usage values are only available
+        # in icehouse (havana needs a full volumes list)
+        # https://github.com/openstack/cinder/commit/608a8dd55300555fb1d17cdf53d08d331d7f5064
+        volumes = client.volumes.list(search_opts={'all_tenants': 1})
+        for volume in volumes:
+            try:
+                data_tenant = data[self.prefix]["tenant-%s" % tenants[getattr(volume, 'os-vol-tenant-attr:tenant_id')]]
+            except KeyError:
+                continue
+            data_tenant['volumes']['count'] += 1
+            data_tenant['volumes']['bytes'] += (volume.size * 1024 * 1024 * 1024)
 
-            # snapshots for tenant
-            volume_snapshots = client.volume_snapshots.list(search_opts={'tenant_id': tenant.id})
-            for snapshot in volume_snapshots:
-                data_tenant['volume-snapshots']['count'] += 1
-                data_tenant['volume-snapshots']['bytes'] += (snapshot.size * 1024 * 1024 * 1024)
+        snapshots = client.volume_snapshots.list(search_opts={'all_tenants': 1})
+        # TODO: seems the project_id extattr is not always available, need to check why
+        # https://github.com/rochaporto/collectd-openstack/issues/12
+        for snapshot in snapshots:
+            try:
+                tenant_id = getattr(snapshot, 'os-extended-snapshot-attributes:project_id')
+            except AttributeError:
+                continue
+            try:
+                data_tenant = data[self.prefix]["tenant-%s" % tenants[tenant_id]]
+            except KeyError:
+                continue
+            data_tenant['volume-snapshots']['count'] += 1
+            data_tenant['volume-snapshots']['bytes'] += (snapshot.size * 1024 * 1024 * 1024)
 
         return data
 
