@@ -152,5 +152,5 @@ class Base(object):
 
     def logdebug(self, msg):
         if self.debug:
-            collectd.debug("%s: %s" % (self.prefix, msg))
+            collectd.info("%s: %s" % (self.prefix, msg))
 
