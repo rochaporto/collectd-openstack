@@ -20,6 +20,7 @@ Find below a list of the available plugins and the metrics they publish.
   * openstack-cinder.&lt;tenant>.volumes.bytes (total bytes of tenant volumes)
   * openstack-cinder.&lt;tenant>.volume-snapshots.count (number of tenant snapshots)
   * openstack-cinder.&lt;tenant>.volume-snapshots.bytes (total bytes of tenant snapshots)
+  * openstack-cinder.&lt;tenant>.limites-{maxTotalVolumeGigabytes,maxTotalVolumes}
 * glance_plugin
   * openstack-glance.&lt;tenant>.images.count (number of tenant images)
   * openstack-glance.&lt;tenant>.images.bytes (total bytes of tenant images)
@@ -35,6 +36,8 @@ Find below a list of the available plugins and the metrics they publish.
   * openstack-neutron.&lt;tenant>.routers.count (number of tenant routers)
   * openstack-neutron.&lt;tenant>.ports.count (number of tenant ports)
   * openstack-neutron.&lt;tenant>.floatingips.count (number of tenant floating ips)
+  * openstack-neutron.&lt;tenant>.quotas-{floatingip,ikepolicy,ipsec_site_connection,ipsecpolicy,network,
+                                          port,router,security_group,security_group_rule,subnet}
 * nova_plugin
   * openstack-nova.&lt;tenant>.limits.{maxImageMeta,maxPersonality,maxPersonalitySize,maxSecurityGroupRules,
                                        maxSecurityGroups,maxServerMeta,maxTotalCores,maxTotalFloatingIps,
